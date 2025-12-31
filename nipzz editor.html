@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Nippz Photo Editor by Nipun</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow-x: hidden; touch-action: pan-y; }
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            height: 8px;
+            border-radius: 5px;
+            background: rgba(255,255,255,0.3);
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script>
+        const App = () => {
+            let state = {
+                image: null,
+                brightness: 100,
+                contrast: 100,
+                saturation: 100,
+                blur: 0,
+                hue: 0,
+                grayscale: 0,
+                sepia: 0,
+                rotation: 0,
+                flipH: false,
+                flipV: false,
+                activeTab: 'filters'
+            };
+
+            const filters = [
+                { name: 'Original', brightness: 100, contrast: 100, saturation: 100, blur: 0, hue: 0, grayscale: 0, sepia: 0 },
+                { name: 'Vivid', brightness: 110, contrast: 120, saturation: 140, blur: 0, hue: 0, grayscale: 0, sepia: 0 },
+                { name: 'B&W', brightness: 100, contrast: 110, saturation: 0, blur: 0, hue: 0, grayscale: 100, sepia: 0 },
+                { name: 'Vintage', brightness: 95, contrast: 90, saturation: 80, blur: 0, hue: 20, grayscale: 0, sepia: 60 },
+                { name: 'Cool', brightness: 105, contrast: 100, saturation: 110, blur: 0, hue: 200, grayscale: 0, sepia: 0 },
+                { name: 'Warm', brightness: 105, contrast: 100, saturation: 110, blur: 0, hue: 30, grayscale: 0, sepia: 20 },
+                { name: 'Dramatic', brightness: 90, contrast: 140, saturation: 100, blur: 0, hue: 0, grayscale: 0, sepia: 0 },
+                { name: 'Soft', brightness: 110, contrast: 80, saturation: 90, blur: 1, hue: 0, grayscale: 0, sepia: 10 }
+            ];
+
+            const handleImageUpload = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (event) => {
+                        state.image = event.target.result;
+                        resetFilters();
+                        render();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+
+            const resetFilters = () => {
+                state.brightness = 100;
+                state.contrast = 100;
+                state.saturation = 100;
+                state.blur = 0;
+                state.hue = 0;
+                state.grayscale = 0;
+                state.sepia = 0;
+                state.rotation = 0;
+                state.flipH = false;
+                state.flipV = false;
+            };
+
+            const applyFilter = (filter) => {
+                state.brightness = filter.brightness;
+                state.contrast = filter.contrast;
+                state.saturation = filter.saturation;
+                state.blur = filter.blur;
+                state.hue = filter.hue;
+                state.grayscale = filter.grayscale;
+                state.sepia = filter.sepia;
+                render();
+            };
+
+            const getFilterStyle = () => {
+                let transform = `rotate(${state.rotation}deg)`;
+                if (state.flipH) transform += ' scaleX(-1)';
+                if (state.flipV) transform += ' scaleY(-1)';
+                
+                return `filter: brightness(${state.brightness}%) contrast(${state.contrast}%) saturate(${state.saturation}%) blur(${state.blur}px) hue-rotate(${state.hue}deg) grayscale(${state.grayscale}%) sepia(${state.sepia}%); transform: ${transform};`;
+            };
+
+            const downloadImage = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                
+                img.onload = () => {
+                    canvas.width = img.width;
+                    canvas.height = img.height;
+                    
+                    ctx.filter = `brightness(${state.brightness}%) contrast(${state.contrast}%) saturate(${state.saturation}%) blur(${state.blur}px) hue-rotate(${state.hue}deg) grayscale(${state.grayscale}%) sepia(${state.sepia}%)`;
+                    
+                    ctx.save();
+                    ctx.translate(canvas.width / 2, canvas.height / 2);
+                    ctx.rotate((state.rotation * Math.PI) / 180);
+                    ctx.scale(state.flipH ? -1 : 1, state.flipV ? -1 : 1);
+                    ctx.drawImage(img, -img.width / 2, -img.height / 2);
+                    ctx.restore();
+                    
+                    canvas.toBlob((blob) => {
+                        const url = URL.createObjectURL(blob);
+                        const link = document.createElement('a');
+                        link.download = 'nippz-edited-by-nipun.png';
+                        link.href = url;
+                        link.click();
+                        URL.revokeObjectURL(url);
+                    });
+                };
+                
+                img.src = state.image;
+            };
+
+            const render = () => {
+                const app = document.getElementById('app');
+                
+                app.innerHTML = `
+                    <div class="min-h-screen bg-gradient-to-br from-pink-500 via-purple-500 to-indigo-600">
+                        <!-- Header -->
+                        <div class="bg-black/20 backdrop-blur-md border-b border-white/10">
+                            <div class="max-w-7xl mx-auto px-4 py-4">
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-3">
+                                        <div class="w-12 h-12 bg-gradient-to-br from-pink-400 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+                                            <svg class="w-7 h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path d="M12 3l9 7-9 7-9-7 9-7z" stroke-width="2"/>
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h1 class="text-white font-bold text-2xl">Nippz Photo Editor</h1>
+                                            <p class="text-white/80 text-sm">by Nipun</p>
+                                        </div>
+                                    </div>
+                                    ${state.image ? `
+                                        <button onclick="app.downloadImage()" class="flex items-center gap-2 bg-gradient-to-r from-green-400 to-emerald-500 text-white px-6 py-3 rounded-xl font-bold hover:shadow-lg transition">
+                                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke-width="2"/>
+                                                <polyline points="7 10 12 15 17 10" stroke-width="2"/>
+                                                <line x1="12" y1="15" x2="12" y2="3" stroke-width="2"/>
+                                            </svg>
+                                            Download
+                                        </button>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="max-w-7xl mx-auto p-4">
+                            ${!state.image ? `
+                                <!-- Upload Area -->
+                                <div class="bg-white/10 backdrop-blur-md rounded-3xl p-8 mt-8">
+                                    <label class="border-4 border-dashed border-white/40 rounded-2xl p-20 text-center hover:border-white/60 hover:bg-white/5 transition cursor-pointer block">
+                                        <svg class="w-24 h-24 text-white mx-auto mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" stroke-width="2"/>
+                                            <polyline points="17 8 12 3 7 8" stroke-width="2"/>
+                                            <line x1="12" y1="3" x2="12" y2="15" stroke-width="2"/>
+                                        </svg>
+                                        <h3 class="text-3xl font-bold text-white mb-3">Upload Your Photo</h3>
+                                        <p class="text-white/80 text-lg">Click to select an image and start editing!</p>
+                                        <input type="file" accept="image/*" onchange="app.handleImageUpload(event)" class="hidden" id="fileInput">
+                                    </label>
+                                </div>
+                            ` : `
+                                <!-- Editor Interface -->
+                                <div class="grid lg:grid-cols-3 gap-4 mt-4">
+                                    <!-- Image Preview -->
+                                    <div class="lg:col-span-2">
+                                        <div class="bg-black/30 backdrop-blur-md rounded-3xl p-6">
+                                            <div class="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-4 overflow-hidden">
+                                                <div class="flex items-center justify-center min-h-96">
+                                                    <img src="${state.image}" alt="Preview" style="${getFilterStyle()}" class="max-w-full max-h-96 object-contain transition-all duration-300">
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Quick Actions -->
+                                            <div class="flex gap-3 mt-4 flex-wrap">
+                                                <button onclick="app.rotate()" class="flex items-center gap-2 bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl font-semibold transition">
+                                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <polyline points="23 4 23 10 17 10" stroke-width="2"/>
+                                                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" stroke-width="2"/>
+                                                    </svg>
+                                                    Rotate
+                                                </button>
+                                                <button onclick="app.flipH()" class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl font-semibold transition">
+                                                    Flip H
+                                                </button>
+                                                <button onclick="app.flipV()" class="bg-white/20 hover:bg-white/30 text-white px-4 py-2 rounded-xl font-semibold transition">
+                                                    Flip V
+                                                </button>
+                                                <button onclick="app.reset()" class="bg-red-500/80 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-semibold transition">
+                                                    Reset All
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Controls Panel -->
+                                    <div class="lg:col-span-1">
+                                        <div class="bg-white/10 backdrop-blur-md rounded-3xl p-6">
+                                            <!-- Tabs -->
+                                            <div class="flex gap-2 mb-6">
+                                                <button onclick="app.setTab('filters')" class="flex-1 py-3 px-4 rounded-xl font-bold transition ${state.activeTab === 'filters' ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white' : 'bg-white/20 text-white/60'}">
+                                                    Filters
+                                                </button>
+                                                <button onclick="app.setTab('adjust')" class="flex-1 py-3 px-4 rounded-xl font-bold transition ${state.activeTab === 'adjust' ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white' : 'bg-white/20 text-white/60'}">
+                                                    Adjust
+                                                </button>
+                                            </div>
+
+                                            ${state.activeTab === 'filters' ? `
+                                                <!-- Filters -->
+                                                <div class="space-y-3 max-h-96 overflow-y-auto">
+                                                    ${filters.map((f, i) => `
+                                                        <button onclick="app.applyFilterByIndex(${i})" class="w-full bg-white/20 hover:bg-white/30 text-white px-4 py-3 rounded-xl font-semibold transition text-left">
+                                                            ✨ ${f.name}
+                                                        </button>
+                                                    `).join('')}
+                                                </div>
+                                            ` : `
+                                                <!-- Adjust -->
+                                                <div class="space-y-5 max-h-96 overflow-y-auto pr-2">
+                                                    <div>
+                                                        <label class="text-white mb-2 block font-semibold">☀️ Brightness: ${state.brightness}%</label>
+                                                        <input type="range" min="0" max="200" value="${state.brightness}" oninput="app.setBrightness(this.value)" class="w-full">
+                                                    </div>
+                                                    <div>
+                                                        <label class="text-white mb-2 block font-semibold">🌙 Contrast: ${state.contrast}%</label>
+                                                        <input type="range" min="0" max="200" value="${state.contrast}" oninput="app.setContrast(this.value)" class="w-full">
+                                                    </div>
+                                                    <div>
+                                                        <label class="text-white mb-2 block font-semibold">🎨 Saturation: ${state.saturation}%</label>
+                                                        <input type="range" min="0" max="200" value="${state.saturation}" oninput="app.setSaturation(this.value)" class="w-full">
+                                                    </div>
+                                                    <div>
+                                                        <label class="text-white mb-2 block font-semibold">💧 Blur: ${state.blur}px</label>
+                                                        <input type="range" min="0" max="20" value="${state.blur}" oninput="app.setBlur(this.value)" class="w-full">
+                                                    </div>
+                                                    <div>
+                                                        <label class="text-white mb-2 block font-semibold">🌀 Hue: ${state.hue}°</label>
+                                                        <input type="range" min="0" max="360" value="${state.hue}" oninput="app.setHue(this.value)" class="w-full">
+                                                    </div>
+                                                    <div>
+                                                        <label class="text-white mb-2 block font-semibold">⚫ Grayscale: ${state.grayscale}%</label>
+                                                        <input type="range" min="0" max="100" value="${state.grayscale}" oninput="app.setGrayscale(this.value)" class="w-full">
+                                                    </div>
+                                                    <div>
+                                                        <label class="text-white mb-2 block font-semibold">⚡ Sepia: ${state.sepia}%</label>
+                                                        <input type="range" min="0" max="100" value="${state.sepia}" oninput="app.setSepia(this.value)" class="w-full">
+                                                    </div>
+                                                </div>
+                                            `}
+                                        </div>
+                                    </div>
+                                </div>
+                            `}
+                        </div>
+                    </div>
+                `;
+            };
+
+            // Public API
+            window.app = {
+                handleImageUpload,
+                downloadImage,
+                applyFilterByIndex: (i) => { applyFilter(filters[i]); },
+                rotate: () => { state.rotation = (state.rotation - 90) % 360; render(); },
+                flipH: () => { state.flipH = !state.flipH; render(); },
+                flipV: () => { state.flipV = !state.flipV; render(); },
+                reset: () => { resetFilters(); render(); },
+                setTab: (tab) => { state.activeTab = tab; render(); },
+                setBrightness: (v) => { state.brightness = v; render(); },
+                setContrast: (v) => { state.contrast = v; render(); },
+                setSaturation: (v) => { state.saturation = v; render(); },
+                setBlur: (v) => { state.blur = v; render(); },
+                setHue: (v) => { state.hue = v; render(); },
+                setGrayscale: (v) => { state.grayscale = v; render(); },
+                setSepia: (v) => { state.sepia = v; render(); }
+            };
+
+            render();
+        };
+
+        App();
+    </script>
+</body>
+</html>
